@@ -47,6 +47,8 @@ typedef struct SPUserResizableViewAnchorPoint {
 - (void)hideEditingHandles;
 - (void)showEditingHandles;
 
+- (void)startEditing;
+
 @end
 
 @protocol SPUserResizableViewDelegate <NSObject>
