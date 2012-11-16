@@ -286,6 +286,10 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
     
     self.frame = CGRectMake(newX, newY, newWidth, newHeight);
     touchStart = touchPoint;
+	
+	if ([self.delegate respondsToSelector:@selector(userResizableViewDidResize:)]) {
+		[self.delegate userResizableViewDidResize:self];
+	}
 }
 
 - (void)translateUsingTouchLocation:(CGPoint)touchPoint {
@@ -308,6 +312,10 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
         }
     }
     self.center = newCenter;
+	
+	if ([self.delegate respondsToSelector:@selector(userResizableViewDidMove:)]) {
+		[self.delegate userResizableViewDidMove:self];
+	}
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
