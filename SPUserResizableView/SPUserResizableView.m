@@ -7,6 +7,8 @@
 
 #import "SPUserResizableView.h"
 
+#include <math.h>
+
 /* Let's inset everything that's drawn (the handles and the content view)
    so that users can trigger a resize from a few pixels outside of
    what they actually see as the bounding box. */
@@ -242,8 +244,18 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
     
     // (2) Calculate the deltas using the current anchor point.
     CGFloat deltaW = anchorPoint.adjustsW * (touchStart.x - touchPoint.x);
-    CGFloat deltaX = anchorPoint.adjustsX * (-1.0 * deltaW);
     CGFloat deltaH = anchorPoint.adjustsH * (touchPoint.y - touchStart.y);
+	
+	if (self.constraintResize) {
+	
+		CGFloat w = self.bounds.size.width;
+		CGFloat h = self.bounds.size.height;
+		CGFloat r = 1.0 * (deltaW * w + deltaH * h) / ( powf(w,2) + powf(h,2) );
+		deltaW = r * w;
+		deltaH = r * h;
+	}
+	
+    CGFloat deltaX = anchorPoint.adjustsX * (-1.0 * deltaW);
     CGFloat deltaY = anchorPoint.adjustsY * (-1.0 * deltaH);
     
     // (3) Calculate the new frame.

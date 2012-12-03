@@ -49,6 +49,8 @@ typedef struct SPUserResizableViewAnchorPoint {
 
 - (void)startEditing;
 
+@property (nonatomic, assign) BOOL constraintResize;
+
 @end
 
 @protocol SPUserResizableViewDelegate <NSObject>
