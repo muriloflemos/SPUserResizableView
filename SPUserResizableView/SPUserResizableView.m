@@ -16,7 +16,7 @@
 
 #define kSPUserResizableViewDefaultMinWidth 48.0
 #define kSPUserResizableViewDefaultMinHeight 48.0
-#define kSPUserResizableViewInteractiveBorderSize 10.0
+#define kSPUserResizableViewInteractiveBorderSize 12.0
 
 static SPUserResizableViewAnchorPoint SPUserResizableViewNoResizeAnchorPoint = { 0.0, 0.0, 0.0, 0.0 };
 static SPUserResizableViewAnchorPoint SPUserResizableViewUpperLeftAnchorPoint = { 1.0, 1.0, -1.0, 1.0 };
@@ -42,12 +42,13 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
 }
 
 - (void)drawRect:(CGRect)rect {
+    
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextSaveGState(context);
     
     // (1) Draw the bounding box.
     CGContextSetLineWidth(context, 1.0);
-    CGContextSetStrokeColorWithColor(context, [UIColor blueColor].CGColor);
+    CGContextSetStrokeColorWithColor(context, [UIColor colorWithRed:146.0f/255.0f green:152.0f/255.0f blue:155.0f/255.0f alpha:1.0f].CGColor);
     CGContextAddRect(context, CGRectInset(self.bounds, kSPUserResizableViewInteractiveBorderSize/2, kSPUserResizableViewInteractiveBorderSize/2));
     CGContextStrokePath(context);
     
@@ -63,17 +64,17 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     
     // (3) Create the gradient to paint the anchor points.
     CGFloat colors [] = { 
-        0.4, 0.8, 1.0, 1.0, 
-        0.0, 0.0, 1.0, 1.0
+        105.0f/255.0f, 206.0f/255.0f, 255.0f/255.0f, 1.0f,
+        0.0f/255.0f, 141.0f/255.0f, 209.0f/255.0f, 1.0f,
     };
     CGColorSpaceRef baseSpace = CGColorSpaceCreateDeviceRGB();
     CGGradientRef gradient = CGGradientCreateWithColorComponents(baseSpace, colors, NULL, 2);
     CGColorSpaceRelease(baseSpace), baseSpace = NULL;
     
     // (4) Set up the stroke for drawing the border of each of the anchor points.
-    CGContextSetLineWidth(context, 1);
-    CGContextSetShadow(context, CGSizeMake(0.5, 0.5), 1);
-    CGContextSetStrokeColorWithColor(context, [UIColor whiteColor].CGColor);
+//    CGContextSetLineWidth(context, 0.5);
+//    CGContextSetShadow(context, CGSizeMake(0.5, 0.5), 1);
+//    CGContextSetStrokeColorWithColor(context, [UIColor colorWithRed:146.0f/255.0f green:152.0f/255.0f blue:155.0f/255.0f alpha:1.0f].CGColor);
     
     // (5) Fill each anchor point using the gradient, then stroke the border.
     CGRect allPoints[8] = { upperLeft, upperRight, lowerRight, lowerLeft, upperMiddle, lowerMiddle, middleLeft, middleRight };
@@ -86,7 +87,7 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
         CGPoint endPoint = CGPointMake(CGRectGetMidX(currPoint), CGRectGetMaxY(currPoint));
         CGContextDrawLinearGradient(context, gradient, startPoint, endPoint, 0);
         CGContextRestoreGState(context);
-        CGContextStrokeEllipseInRect(context, CGRectInset(currPoint, 1, 1));
+//        CGContextStrokeEllipseInRect(context, CGRectInset(currPoint, 1, 1));
     }
     CGGradientRelease(gradient), gradient = NULL;
     CGContextRestoreGState(context);
