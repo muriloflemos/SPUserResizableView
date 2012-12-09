@@ -134,10 +134,22 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
 }
 
 - (void)setFrame:(CGRect)newFrame {
-    [super setFrame:newFrame];
+    [super setFrame:CGRectMake(newFrame.origin.x-kSPUserResizableViewInteractiveBorderSize,
+							   newFrame.origin.y-kSPUserResizableViewInteractiveBorderSize,
+							   newFrame.size.width+kSPUserResizableViewInteractiveBorderSize*2,
+							   newFrame.size.height+kSPUserResizableViewInteractiveBorderSize*2
+	)];
     contentView.frame = CGRectInset(self.bounds, kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2, kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2);
     borderView.frame = CGRectInset(self.bounds, kSPUserResizableViewGlobalInset, kSPUserResizableViewGlobalInset);
     [borderView setNeedsDisplay];
+}
+
+- (CGRect)frame {
+	return CGRectMake(super.frame.origin.x+kSPUserResizableViewInteractiveBorderSize,
+					  super.frame.origin.y+kSPUserResizableViewInteractiveBorderSize,
+					  super.frame.size.width-kSPUserResizableViewInteractiveBorderSize*2,
+					  super.frame.size.height-kSPUserResizableViewInteractiveBorderSize*2
+					  );
 }
 
 static CGFloat SPDistanceBetweenTwoPoints(CGPoint point1, CGPoint point2) {
@@ -310,18 +322,18 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
     if (self.preventsPositionOutsideSuperview) {
         // Ensure the translation won't cause the view to move offscreen.
         CGFloat midPointX = CGRectGetMidX(self.bounds);
-        if (newCenter.x > self.superview.bounds.size.width - midPointX) {
-            newCenter.x = self.superview.bounds.size.width - midPointX;
+        if (newCenter.x > self.superview.bounds.size.width - midPointX + kSPUserResizableViewInteractiveBorderSize) {
+            newCenter.x = self.superview.bounds.size.width - midPointX + kSPUserResizableViewInteractiveBorderSize;
         }
-        if (newCenter.x < midPointX) {
-            newCenter.x = midPointX;
+        if (newCenter.x < midPointX - kSPUserResizableViewInteractiveBorderSize) {
+            newCenter.x = midPointX - kSPUserResizableViewInteractiveBorderSize;
         }
         CGFloat midPointY = CGRectGetMidY(self.bounds);
-        if (newCenter.y > self.superview.bounds.size.height - midPointY) {
-            newCenter.y = self.superview.bounds.size.height - midPointY;
+        if (newCenter.y > self.superview.bounds.size.height - midPointY + kSPUserResizableViewInteractiveBorderSize) {
+            newCenter.y = self.superview.bounds.size.height - midPointY + kSPUserResizableViewInteractiveBorderSize;
         }
-        if (newCenter.y < midPointY) {
-            newCenter.y = midPointY;
+        if (newCenter.y < midPointY - kSPUserResizableViewInteractiveBorderSize) {
+            newCenter.y = midPointY - kSPUserResizableViewInteractiveBorderSize;
         }
     }
     self.center = newCenter;
