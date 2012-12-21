@@ -40,6 +40,8 @@ typedef struct SPUserResizableViewAnchorPoint {
 // Default is 48.0 for each.
 @property (nonatomic) CGFloat minWidth;
 @property (nonatomic) CGFloat minHeight;
+@property (nonatomic) CGFloat maxWidth;
+@property (nonatomic) CGFloat maxHeight;
 
 // Defaults to YES. Disables the user from dragging the view outside the parent view's bounds.
 @property (nonatomic) BOOL preventsPositionOutsideSuperview;

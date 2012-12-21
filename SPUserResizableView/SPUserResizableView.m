@@ -105,6 +105,8 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     [self addSubview:borderView];
     self.minWidth = kSPUserResizableViewDefaultMinWidth;
     self.minHeight = kSPUserResizableViewDefaultMinHeight;
+    self.maxWidth = 0.0f;
+    self.maxHeight = 0.0f;
     self.preventsPositionOutsideSuperview = YES;
 }
 
@@ -285,6 +287,12 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
     if (newHeight < self.minHeight) {
         newHeight = self.frame.size.height;
         newY = self.frame.origin.y;
+    }
+    
+    // If the new frame is too big and max size has been set, cancel the changes.
+    if ((self.maxWidth > 0 && newWidth > self.maxWidth) || (self.maxHeight && newHeight > self.maxHeight)) {
+        newWidth = self.frame.size.width;
+        newHeight = self.frame.size.height;
     }
     
     // (5) Ensure the resize won't cause the view to move offscreen.
