@@ -28,7 +28,7 @@ typedef struct SPUserResizableViewAnchorPoint {
     
     // Used to determine which components of the bounds we'll be modifying, based upon where the user's touch started.
     SPUserResizableViewAnchorPoint anchorPoint;
-    
+	    
     id <SPUserResizableViewDelegate> delegate;
 }
 
@@ -45,6 +45,8 @@ typedef struct SPUserResizableViewAnchorPoint {
 
 // Defaults to YES. Disables the user from dragging the view outside the parent view's bounds.
 @property (nonatomic) BOOL preventsPositionOutsideSuperview;
+
+@property (nonatomic) BOOL resizeWithPinch;
 
 - (void)hideEditingHandles;
 - (void)showEditingHandles;

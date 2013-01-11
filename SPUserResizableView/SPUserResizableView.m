@@ -95,6 +95,16 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
 
 @end
 
+
+@interface SPUserResizableView ()
+@property (nonatomic, assign) CGRect originalFrame;
+- (void)resizeWithDeltaW:(CGFloat)deltaW
+				  deltaH:(CGFloat)deltaH
+				  deltaX:(CGFloat)deltaX
+				  deltaY:(CGFloat)deltaY;
+@end
+
+
 @implementation SPUserResizableView
 
 @synthesize contentView, minWidth, minHeight, preventsPositionOutsideSuperview, delegate;
@@ -108,6 +118,8 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     self.maxWidth = 0.0f;
     self.maxHeight = 0.0f;
     self.preventsPositionOutsideSuperview = YES;
+	
+	self.resizeWithPinch = YES;
 }
 
 - (id)initWithFrame:(CGRect)frame {
@@ -122,6 +134,45 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
         [self setupDefaultAttributes];
     }
     return self;
+}
+
+#pragma mark - pinch gesture
+
+- (void)setResizeWithPinch:(BOOL)resizeWithPinch {
+	_resizeWithPinch = resizeWithPinch;
+	if (resizeWithPinch) {
+		UIPinchGestureRecognizer *pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchGesture:)];
+		[self addGestureRecognizer:pinchGestureRecognizer];
+	} else {
+		for (UIGestureRecognizer *gestureRecognizer in self.gestureRecognizers) {
+			if ([gestureRecognizer isKindOfClass:[UIPinchGestureRecognizer class]]) {
+				[self removeGestureRecognizer:gestureRecognizer];
+			}
+		}
+	}
+}
+
+- (void)handlePinchGesture:(UIPinchGestureRecognizer*)pinchGestureRecognizer {
+	
+	if (pinchGestureRecognizer.state == UIGestureRecognizerStateBegan) {
+		self.originalFrame = self.bounds;
+	}
+	pinchGestureRecognizer.scale = pinchGestureRecognizer.scale;
+	
+	CGFloat deltaW = self.originalFrame.size.width * pinchGestureRecognizer.scale - self.bounds.size.width;
+	CGFloat deltaH = self.originalFrame.size.height * pinchGestureRecognizer.scale - self.bounds.size.height;
+	
+	CGFloat deltaX = - deltaW / 2.0;
+	CGFloat deltaY = - deltaH / 2.0;
+	
+	[self resizeWithDeltaW:(CGFloat)deltaW
+					deltaH:(CGFloat)deltaH
+					deltaX:(CGFloat)deltaX
+					deltaY:(CGFloat)deltaY];
+	
+	if ([self.delegate respondsToSelector:@selector(userResizableViewDidResize:)]) {
+		[self.delegate userResizableViewDidResize:self];
+	}
 }
 
 - (void)setContentView:(UIView *)newContentView {
@@ -144,6 +195,7 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     contentView.frame = CGRectInset(self.bounds, kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2, kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2);
     borderView.frame = CGRectInset(self.bounds, kSPUserResizableViewGlobalInset, kSPUserResizableViewGlobalInset);
     [borderView setNeedsDisplay];
+	NSLog(@"setFrame");
 }
 
 - (CGRect)frame {
@@ -239,8 +291,55 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
     [borderView setHidden:YES];
 }
 
+
+- (void)resizeWithDeltaW:(CGFloat)deltaW
+				  deltaH:(CGFloat)deltaH
+				  deltaX:(CGFloat)deltaX
+				  deltaY:(CGFloat)deltaY
+{
+	// Calculate the new frame.
+    CGFloat newX = self.frame.origin.x + deltaX;
+    CGFloat newY = self.frame.origin.y + deltaY;
+    CGFloat newWidth = self.frame.size.width + deltaW;
+    CGFloat newHeight = self.frame.size.height + deltaH;
+	
+    // If the new frame is too small, cancel the changes.
+    if (newWidth < self.minWidth) {
+        newWidth = self.frame.size.width;
+        newX = self.frame.origin.x;
+    }
+    if (newHeight < self.minHeight) {
+        newHeight = self.frame.size.height;
+        newY = self.frame.origin.y;
+    }
+    
+    // If the new frame is too big and max size has been set, cancel the changes.
+    if ((self.maxWidth > 0 && newWidth > self.maxWidth) || (self.maxHeight && newHeight > self.maxHeight)) {
+        newWidth = self.frame.size.width;
+        newHeight = self.frame.size.height;
+    }
+	
+    // Ensure the resize won't cause the view to move offscreen.
+    if (self.preventsPositionOutsideSuperview) {
+        if (newX < self.superview.bounds.origin.x) {
+            newX = self.superview.bounds.origin.x;
+        }
+        if (newX + newWidth > self.superview.bounds.origin.x + self.superview.bounds.size.width) {
+			newX = self.superview.bounds.origin.x + self.superview.bounds.size.width - newWidth;
+        }
+        if (newY < self.superview.bounds.origin.y) {
+            newY = self.superview.bounds.origin.y;
+        }
+        if (newY + newHeight > self.superview.bounds.origin.y + self.superview.bounds.size.height) {
+			newY = self.superview.bounds.origin.y + self.superview.bounds.size.height - newHeight;
+        }
+    }
+    
+    self.frame = CGRectMake(newX, newY, newWidth, newHeight);
+}
+
 - (void)resizeUsingTouchLocation:(CGPoint)touchPoint {
-    // (1) Update the touch point if we're outside the superview.
+    // Update the touch point if we're outside the superview.
     if (self.preventsPositionOutsideSuperview) {
         CGFloat border = kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2;
         if (touchPoint.x < border) {
@@ -257,12 +356,11 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
         }
     }
     
-    // (2) Calculate the deltas using the current anchor point.
+    // Calculate the deltas using the current anchor point.
     CGFloat deltaW = anchorPoint.adjustsW * (touchStart.x - touchPoint.x);
     CGFloat deltaH = anchorPoint.adjustsH * (touchPoint.y - touchStart.y);
 	
 	if (self.constraintResize) {
-	
 		CGFloat w = self.bounds.size.width;
 		CGFloat h = self.bounds.size.height;
 		CGFloat r = 1.0 * (deltaW * w + deltaH * h) / ( powf(w,2) + powf(h,2) );
@@ -272,53 +370,13 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
 	
     CGFloat deltaX = anchorPoint.adjustsX * (-1.0 * deltaW);
     CGFloat deltaY = anchorPoint.adjustsY * (-1.0 * deltaH);
-    
-    // (3) Calculate the new frame.
-    CGFloat newX = self.frame.origin.x + deltaX;
-    CGFloat newY = self.frame.origin.y + deltaY;
-    CGFloat newWidth = self.frame.size.width + deltaW;
-    CGFloat newHeight = self.frame.size.height + deltaH;
-    
-    // (4) If the new frame is too small, cancel the changes.
-    if (newWidth < self.minWidth) {
-        newWidth = self.frame.size.width;
-        newX = self.frame.origin.x;
-    }
-    if (newHeight < self.minHeight) {
-        newHeight = self.frame.size.height;
-        newY = self.frame.origin.y;
-    }
-    
-    // If the new frame is too big and max size has been set, cancel the changes.
-    if ((self.maxWidth > 0 && newWidth > self.maxWidth) || (self.maxHeight && newHeight > self.maxHeight)) {
-        newWidth = self.frame.size.width;
-        newHeight = self.frame.size.height;
-    }
-    
-    // (5) Ensure the resize won't cause the view to move offscreen.
-    if (self.preventsPositionOutsideSuperview) {
-        if (newX < self.superview.bounds.origin.x) {
-            // Calculate how much to grow the width by such that the new X coordintae will align with the superview.
-            deltaW = self.frame.origin.x - self.superview.bounds.origin.x;
-            newWidth = self.frame.size.width + deltaW;
-            newX = self.superview.bounds.origin.x;
-        }
-        if (newX + newWidth > self.superview.bounds.origin.x + self.superview.bounds.size.width) {
-            newWidth = self.superview.bounds.size.width - newX;
-        }
-        if (newY < self.superview.bounds.origin.y) {
-            // Calculate how much to grow the height by such that the new Y coordintae will align with the superview.
-            deltaH = self.frame.origin.y - self.superview.bounds.origin.y;
-            newHeight = self.frame.size.height + deltaH;
-            newY = self.superview.bounds.origin.y;
-        }
-        if (newY + newHeight > self.superview.bounds.origin.y + self.superview.bounds.size.height) {
-            newHeight = self.superview.bounds.size.height - newY;
-        }
-    }
-    
-    self.frame = CGRectMake(newX, newY, newWidth, newHeight);
-    touchStart = touchPoint;
+	
+	touchStart = touchPoint;
+	
+	[self resizeWithDeltaW:deltaW
+					deltaH:deltaH
+					deltaX:deltaX
+					deltaY:deltaY];
 	
 	if ([self.delegate respondsToSelector:@selector(userResizableViewDidResize:)]) {
 		[self.delegate userResizableViewDidResize:self];
