@@ -141,7 +141,7 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
 - (void)setResizeWithPinch:(BOOL)resizeWithPinch {
 	_resizeWithPinch = resizeWithPinch;
 	if (resizeWithPinch) {
-		UIPinchGestureRecognizer *pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchGesture:)];
+		UIPinchGestureRecognizer *pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(resizeUsingGesture:)];
 		[self addGestureRecognizer:pinchGestureRecognizer];
 	} else {
 		for (UIGestureRecognizer *gestureRecognizer in self.gestureRecognizers) {
@@ -152,7 +152,7 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
 	}
 }
 
-- (void)handlePinchGesture:(UIPinchGestureRecognizer*)pinchGestureRecognizer {
+- (void)resizeUsingGesture:(UIPinchGestureRecognizer*)pinchGestureRecognizer {
 	
 	if (pinchGestureRecognizer.state == UIGestureRecognizerStateBegan) {
 		self.originalFrame = self.bounds;
@@ -195,7 +195,6 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     contentView.frame = CGRectInset(self.bounds, kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2, kSPUserResizableViewGlobalInset + kSPUserResizableViewInteractiveBorderSize/2);
     borderView.frame = CGRectInset(self.bounds, kSPUserResizableViewGlobalInset, kSPUserResizableViewGlobalInset);
     [borderView setNeedsDisplay];
-	NSLog(@"setFrame");
 }
 
 - (CGRect)frame {
