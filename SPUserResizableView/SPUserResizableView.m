@@ -18,6 +18,8 @@
 #define kSPUserResizableViewDefaultMinHeight 48.0
 #define kSPUserResizableViewInteractiveBorderSize 12.0
 
+#define kSPUserResizableViewPinchMinimumDelta 100
+
 static SPUserResizableViewAnchorPoint SPUserResizableViewNoResizeAnchorPoint = { 0.0, 0.0, 0.0, 0.0 };
 static SPUserResizableViewAnchorPoint SPUserResizableViewUpperLeftAnchorPoint = { 1.0, 1.0, -1.0, 1.0 };
 static SPUserResizableViewAnchorPoint SPUserResizableViewMiddleLeftAnchorPoint = { 1.0, 0.0, 0.0, 1.0 };
@@ -37,6 +39,7 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     if ((self = [super initWithFrame:frame])) {
         // Clear background to ensure the content view shows through.
         self.backgroundColor = [UIColor clearColor];
+		self.multipleTouchEnabled = YES;
     }
     return self;
 }
@@ -98,6 +101,8 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
 
 @interface SPUserResizableView ()
 @property (nonatomic, assign) CGRect originalFrame;
+@property (nonatomic, assign) CGFloat initialPinchDistance;
+@property (nonatomic, assign) CGPoint initialPinchCenterPoint;
 - (void)resizeWithDeltaW:(CGFloat)deltaW
 				  deltaH:(CGFloat)deltaH
 				  deltaX:(CGFloat)deltaX
@@ -118,8 +123,9 @@ static SPUserResizableViewAnchorPoint SPUserResizableViewLowerMiddleAnchorPoint 
     self.maxWidth = 0.0f;
     self.maxHeight = 0.0f;
     self.preventsPositionOutsideSuperview = YES;
+	self.multipleTouchEnabled = YES;
 	
-	self.resizeWithPinch = YES;
+	self.resizeWithPinch = NO;
 }
 
 - (id)initWithFrame:(CGRect)frame {
@@ -256,19 +262,39 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [self startEditing];
+	
+	if ([touches count] == 1) {
     
-    UITouch *touch = [touches anyObject];
-    anchorPoint = [self anchorPointForTouchLocation:[touch locationInView:self]];
-    
-    // When resizing, all calculations are done in the superview's coordinate space.
-    touchStart = [touch locationInView:self.superview];
-    if (![self isResizing]) {
-        // When translating, all calculations are done in the view's coordinate space.
-        touchStart = [touch locationInView:self];
-    }
+		UITouch *touch = [touches anyObject];
+		anchorPoint = [self anchorPointForTouchLocation:[touch locationInView:self]];
+		
+		// When resizing, all calculations are done in the superview's coordinate space.
+		touchStart = [touch locationInView:self.superview];
+		if (![self isResizing]) {
+			// When translating, all calculations are done in the view's coordinate space.
+			touchStart = [touch locationInView:self];
+		}
+	
+	} else if ([touches count] == 2) {
+		
+		NSArray *twoTouches = [touches allObjects];
+		CGPoint first = [[twoTouches objectAtIndex:0] locationInView:self];
+		CGPoint second = [[twoTouches objectAtIndex:1] locationInView:self];
+		self.InitialPinchDistance = SPDistanceBetweenTwoPoints(first, second);
+		self.originalFrame = self.bounds;
+		
+		//touchStart = [[touches anyObject] locationInView:self];
+		
+		touchStart = CGPointMake(
+				(first.x + second.x)/2,
+				(first.y + second.y)/2
+		);
+	}
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+	self.initialPinchDistance = 0;
+	
     // Notify the delegate we've ended our editing session.
     if (self.delegate && [self.delegate respondsToSelector:@selector(userResizableViewDidEndEditing:)]) {
         [self.delegate userResizableViewDidEndEditing:self];
@@ -408,12 +434,58 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
 	}
 }
 
+
+- (void)resizeUsingPinchTouches:(NSArray*)twoTouches {
+	
+	UITouch *first = [twoTouches objectAtIndex:0];
+	UITouch *second = [twoTouches objectAtIndex:1];
+	CGFloat currentDistance = SPDistanceBetweenTwoPoints(
+														 [first locationInView:self],
+														 [second locationInView:self]
+														 );
+	if (self.initialPinchDistance == 0) {
+		self.initialPinchDistance = currentDistance;
+	} else {
+		CGFloat scale = currentDistance / self.initialPinchDistance;
+		
+		CGFloat deltaW = self.originalFrame.size.width * scale - self.bounds.size.width;
+		CGFloat deltaH = self.originalFrame.size.height * scale - self.bounds.size.height;
+		
+		CGFloat deltaX = 0;//- deltaW / 2.0;
+		CGFloat deltaY = 0; //- deltaH / 2.0;
+		
+		[self resizeWithDeltaW:(CGFloat)deltaW
+						deltaH:(CGFloat)deltaH
+						deltaX:(CGFloat)deltaX
+						deltaY:(CGFloat)deltaY];
+	}
+}
+
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-    if ([self isResizing]) {
-        [self resizeUsingTouchLocation:[[touches anyObject] locationInView:self.superview]];
-    } else {
-        [self translateUsingTouchLocation:[[touches anyObject] locationInView:self]];
-    }
+	
+	if ([touches count] == 1) {
+		if ([self isResizing]) {
+			[self resizeUsingTouchLocation:[[touches anyObject] locationInView:self.superview]];
+		} else {
+			[self translateUsingTouchLocation:[[touches anyObject] locationInView:self]];
+		}
+	} else if ([touches count] == 2) {
+		[self resizeUsingPinchTouches:[touches allObjects]];
+		
+		//[self translateUsingTouchLocation:[[touches anyObject] locationInView:self]];
+		/*
+		NSArray *twoTouches = [touches allObjects];
+		CGPoint first = [[twoTouches objectAtIndex:0] locationInView:self];
+		CGPoint second = [[twoTouches objectAtIndex:1] locationInView:self];
+		CGPoint midPoint = CGPointMake(
+									   (first.x + second.x)/2.0,
+									   (first.y + second.y)/2.0
+									   );
+		[self translateUsingTouchLocation:midPoint];
+		NSLog(@"points %@ %@", NSStringFromCGPoint(first), NSStringFromCGPoint(second));
+		NSLog(@"midpoint %@", NSStringFromCGPoint(midPoint));
+		 */
+	}
 }
 
 - (void)dealloc {
