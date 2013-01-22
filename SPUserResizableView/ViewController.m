@@ -17,6 +17,8 @@
     // (1) Create a user resizable view with a simple red background content view.
     CGRect gripFrame = CGRectMake(50, 50, 200, 150);
     SPUserResizableView *userResizableView = [[SPUserResizableView alloc] initWithFrame:gripFrame];
+    userResizableView.maxWidth = 200;
+    userResizableView.maxHeight = 200;
     UIView *contentView = [[UIView alloc] initWithFrame:gripFrame];
     [contentView setBackgroundColor:[UIColor redColor]];
     userResizableView.contentView = contentView;

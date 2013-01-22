@@ -205,7 +205,7 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [self startEditing];
-    
+
     UITouch *touch = [touches anyObject];
     anchorPoint = [self anchorPointForTouchLocation:[touch locationInView:self]];
     
@@ -267,34 +267,24 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
 		CGFloat h = self.bounds.size.height;
 		CGFloat r = 1.0 * (deltaW * w + deltaH * h) / ( powf(w,2) + powf(h,2) );
 		deltaW = r * w;
-		deltaH = r * h;
-	}
-	
+        deltaH = r * h;
+    }
+
     CGFloat deltaX = anchorPoint.adjustsX * (-1.0 * deltaW);
     CGFloat deltaY = anchorPoint.adjustsY * (-1.0 * deltaH);
-    
+
     // (3) Calculate the new frame.
     CGFloat newX = self.frame.origin.x + deltaX;
     CGFloat newY = self.frame.origin.y + deltaY;
     CGFloat newWidth = self.frame.size.width + deltaW;
     CGFloat newHeight = self.frame.size.height + deltaH;
-    
-    // (4) If the new frame is too small, cancel the changes.
-    if (newWidth < self.minWidth) {
-        newWidth = self.frame.size.width;
-        newX = self.frame.origin.x;
+
+    // (4) If the new frame is too small or too big do nothing.
+    if ((newWidth < self.minWidth) || (newHeight < self.minHeight) ||
+            (self.maxWidth > 0 && newWidth > self.maxWidth) || (self.maxHeight && newHeight > self.maxHeight)) {
+        return;
     }
-    if (newHeight < self.minHeight) {
-        newHeight = self.frame.size.height;
-        newY = self.frame.origin.y;
-    }
-    
-    // If the new frame is too big and max size has been set, cancel the changes.
-    if ((self.maxWidth > 0 && newWidth > self.maxWidth) || (self.maxHeight && newHeight > self.maxHeight)) {
-        newWidth = self.frame.size.width;
-        newHeight = self.frame.size.height;
-    }
-    
+
     // (5) Ensure the resize won't cause the view to move offscreen.
     if (self.preventsPositionOutsideSuperview) {
         if (newX < self.superview.bounds.origin.x) {
@@ -316,13 +306,13 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
             newHeight = self.superview.bounds.size.height - newY;
         }
     }
-    
+
     self.frame = CGRectMake(newX, newY, newWidth, newHeight);
     touchStart = touchPoint;
-	
-	if ([self.delegate respondsToSelector:@selector(userResizableViewDidResize:)]) {
-		[self.delegate userResizableViewDidResize:self];
-	}
+
+    if ([self.delegate respondsToSelector:@selector(userResizableViewDidResize:)]) {
+        [self.delegate userResizableViewDidResize:self];
+    }
 }
 
 - (void)translateUsingTouchLocation:(CGPoint)touchPoint {
