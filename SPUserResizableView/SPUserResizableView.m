@@ -279,10 +279,17 @@ typedef struct CGPointSPUserResizableViewAnchorPointPair {
     CGFloat newWidth = self.frame.size.width + deltaW;
     CGFloat newHeight = self.frame.size.height + deltaH;
 
-    // (4) If the new frame is too small or too big do nothing.
-    if ((newWidth < self.minWidth) || (newHeight < self.minHeight) ||
-            (self.maxWidth > 0 && newWidth > self.maxWidth) || (self.maxHeight && newHeight > self.maxHeight)) {
-        return;
+    // (4) If the new frame is too small reset new value and reset touchPoint.
+    if ((newWidth < self.minWidth) || (newWidth > self.maxWidth)) {
+        newX = self.frame.origin.x;
+        newWidth = self.frame.size.width;
+        touchPoint.x = touchStart.x;
+    }
+
+    if ((newHeight < self.minHeight) || (newHeight > self.maxHeight)) {
+        newY = self.frame.origin.y;
+        newHeight = self.frame.size.height;
+        touchPoint.y = touchStart.y;
     }
 
     // (5) Ensure the resize won't cause the view to move offscreen.
