@@ -40,6 +40,8 @@ typedef struct SPUserResizableViewAnchorPoint {
 // Default is 48.0 for each.
 @property (nonatomic) CGFloat minWidth;
 @property (nonatomic) CGFloat minHeight;
+
+// Default is 300.0 for each.
 @property (nonatomic) CGFloat maxWidth;
 @property (nonatomic) CGFloat maxHeight;
 
